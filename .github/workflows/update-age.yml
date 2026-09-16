@@ -1,0 +1,43 @@
+name: Update age in README
+
+on:
+  schedule:
+    # Roda todo dia as 06:00 UTC (03:00 no horario de Brasilia)
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-age:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Calcular idade e atualizar README
+        run: |
+          BIRTH_DATE="2004-06-15"
+
+          TODAY_YMD=$(date -u +%Y%m%d)
+          BIRTH_YMD=$(date -u -d "$BIRTH_DATE" +%Y%m%d)
+          AGE=$(( (10#$TODAY_YMD - 10#$BIRTH_YMD) / 10000 ))
+
+          sed -i -E "s/(I'm\+)[0-9]+(\+years\+old)/\1${AGE}\2/" README.md
+
+          echo "AGE=$AGE" >> "$GITHUB_ENV"
+
+      - name: Commit se houve mudanca
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if ! git diff --quiet -- README.md; then
+            git add README.md
+            git commit -m "chore: atualiza idade para ${AGE} anos"
+            git push
+          else
+            echo "Nenhuma mudanca necessaria, idade ja esta correta (${AGE} anos)."
+          fi
+
